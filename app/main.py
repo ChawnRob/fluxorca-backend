@@ -103,9 +103,10 @@ def chat(req: ChatRequest):
     add_memory(user_id, message)
 
    if isinstance(response, dict) and "answer" in response:
-    return response["answer"]
+        response =  response["answer"]
 
 return response
+
 @app.get("/memory/{user_id}")
 def memory(user_id: str):
     return get_memory(user_id)
