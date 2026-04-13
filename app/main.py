@@ -71,32 +71,24 @@ def root():
 def health():
     return {"status": "ok"}
 
+
 @app.post("/chat")
 def chat(req: ChatRequest):
     user_id = req.user_id
     message = req.message
 
-    # mémoire
-    history = get_memory(user_id)
+    memory = get_memory(user_id)
+    context = " ".join([m["content"] for m in memory[-5:]])
 
-    context = ""
-    for item in history[-5:]:
-        context += f"{item['content']}\n"
+    full_prompt = f"Contexte passé: {context}\n\nMessage: {message}"
 
-    # choix modèle
     model = choose_model(req.model, message)
+    response = call_model(model, full_prompt)
 
-    # réponse (mock)
-    response = call_model(model, message)
-
-    # enrichir avec mémoire
-    final_response = f"Contexte:\n{context}\n\nRéponse:\n{response}"
-
-    # sauvegarde
     add_memory(user_id, message)
 
     return {
-        "response": final_response,
+        "response": response,
         "model_used": model,
         "memory_used": context
     }
