@@ -73,20 +73,33 @@ def health():
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    memory = get_memory(req.user_id)
+    user_id = req.user_id
+    message = req.message
 
-    model = choose_model(req.model, req.message)
+    # mémoire
+    history = get_memory(user_id)
 
-    response = call_model(model, req.message)
+    context = ""
+    for item in history[-5:]:
+        context += f"{item['content']}\n"
 
-    add_memory(req.user_id, req.message)
+    # choix modèle
+    model = choose_model(req.model, message)
+
+    # réponse (mock)
+    response = call_model(model, message)
+
+    # enrichir avec mémoire
+    final_response = f"Contexte:\n{context}\n\nRéponse:\n{response}"
+
+    # sauvegarde
+    add_memory(user_id, message)
 
     return {
-        "response": response,
+        "response": final_response,
         "model_used": model,
-        "memory_count": len(memory)
+        "memory_used": context
     }
-
 @app.get("/memory/{user_id}")
 def memory(user_id: str):
     return get_memory(user_id)
