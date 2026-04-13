@@ -98,19 +98,25 @@ def chat(req: ChatRequest):
     {message}
     """ 
     model = choose_model(req.model, message)
-    response = call_model(model, full_prompt)
-   
-    try:
+response = call_model(model, full_prompt)
+
+add_memory(user_id, message)
+
+# Si le modèle renvoie un JSON texte ou un dict
+try:
     parsed = json.loads(response) if isinstance(response, str) else response
     if isinstance(parsed, dict) and "answer" in parsed:
         response = parsed["answer"]
 except Exception:
     pass
 
-    add_memory(user_id, message)
-
-   if isinstance(response, dict) and "answer" in response:
-        response =  response["answer"]
+# Nettoyage hard: garder seulement la réponse finale lisible
+if isinstance(response, str):
+    if "Réponse finale" in response:
+        response = response.split("Réponse finale")[-1]
+    if ":" in response:
+        response = response.split(":", 1)[-1]
+    response = response.replace("\\n", "\n").replace('\\"', '"').strip()
 
 return response
 
