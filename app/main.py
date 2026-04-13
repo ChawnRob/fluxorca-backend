@@ -81,21 +81,21 @@ def chat(req: ChatRequest):
     context = " ".join([m["content"] for m in memory[-5:]])
 
     full_prompt = f"""
-    Tu es un assistant intelligent.
+    Tu es un assistant .
 
-    Réponds directement au message de l’utilisateur de manière naturelle, claire et utile.
-
-    NE montre jamais ton raisonnement.
-    NE fais aucune analyse.
-    NE parle pas de QEI.
-    NE structure pas la réponse.
-
-    Réponds comme un humain normal.
+    Ta mission:
+    Répondre simplement au message de l'utilisateur .
     
-    Contexte:
-    {context}
-
-    Message: {message}
+    REGLES STRICTES :
+    -Tu ne fais AUCUNE analyse
+    -Tu ne parle JAMAIS de QEI
+    -Tu ne structure Pas
+    -Tu ne donne QUE LA  Réponse finale 
+    
+    Format OBLIGATOIRE :
+    Retourne UNIQUEMENT du texte brut.
+    Message utilisateur :
+    {message}
     """ 
     model = choose_model(req.model, message)
     response = call_model(model, full_prompt)
