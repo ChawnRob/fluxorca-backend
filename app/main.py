@@ -91,6 +91,9 @@ def chat(req: ChatRequest):
     NE structure pas la réponse.
 
     Réponds comme un humain normal.
+    
+    Contexte:
+    {context}
 
     Message: {message}
     """ 
