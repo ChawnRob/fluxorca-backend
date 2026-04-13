@@ -80,8 +80,20 @@ def chat(req: ChatRequest):
     memory = get_memory(user_id)
     context = " ".join([m["content"] for m in memory[-5:]])
 
-    full_prompt = f"Contexte passé: {context}\n\nMessage: {message}"
+    full_prompt = f"""
+    Tu es un assistant intelligent.
 
+    Réponds directement au message de l’utilisateur de manière naturelle, claire et utile.
+
+    NE montre jamais ton raisonnement.
+    NE fais aucune analyse.
+    NE parle pas de QEI.
+    NE structure pas la réponse.
+
+    Réponds comme un humain normal.
+
+    Message: {message}
+    """ 
     model = choose_model(req.model, message)
     response = call_model(model, full_prompt)
 
