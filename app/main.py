@@ -99,6 +99,13 @@ def chat(req: ChatRequest):
     """ 
     model = choose_model(req.model, message)
     response = call_model(model, full_prompt)
+   
+    try:
+    parsed = json.loads(response) if isinstance(response, str) else response
+    if isinstance(parsed, dict) and "answer" in parsed:
+        response = parsed["answer"]
+except Exception:
+    pass
 
     add_memory(user_id, message)
 
