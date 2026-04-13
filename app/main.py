@@ -87,11 +87,8 @@ def chat(req: ChatRequest):
 
     add_memory(user_id, message)
 
-    return {
-        "response": response,
-        "model_used": model,
-        "memory_used": context
-    }
+    return response
+
 @app.get("/memory/{user_id}")
 def memory(user_id: str):
     return get_memory(user_id)
