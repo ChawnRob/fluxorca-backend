@@ -1,118 +1,92 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+import json
+import os
 from datetime import datetime
 
 app = FastAPI()
 
-feedbacks = []
-memory_store: Dict[str, List[dict]] = {}
+MEMORY_FILE = "memory.json"
 
-class FeedbackInput(BaseModel):
-    slug: str
-    sentiment: str
-    message: Optional[str] = None
+# ----------- MODELS -----------
 
-class MemoryInput(BaseModel):
+class ChatRequest(BaseModel):
     user_id: str
-    content: str
-    memory_type: str = "short_term"
-    emotion: Optional[str] = None
-    importance: int = 1
+    message: str
+    model: str = "auto"
+
+# ----------- MEMORY -----------
+
+def load_memory():
+    if not os.path.exists(MEMORY_FILE):
+        return {}
+    with open(MEMORY_FILE, "r") as f:
+        return json.load(f)
+
+def save_memory(data):
+    with open(MEMORY_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+def add_memory(user_id, content):
+    data = load_memory()
+    if user_id not in data:
+        data[user_id] = []
+
+    data[user_id].append({
+        "content": content,
+        "created_at": datetime.utcnow().isoformat()
+    })
+
+    save_memory(data)
+
+def get_memory(user_id):
+    data = load_memory()
+    return data.get(user_id, [])
+
+# ----------- MODEL ROUTER -----------
+
+def choose_model(model, message):
+    if model != "auto":
+        return model
+
+    # logique simple
+    if "analyse" in message or "stratégie" in message:
+        return "gpt"
+    elif "émotion" in message or "humain" in message:
+        return "claude"
+    else:
+        return "mistral"
+
+def call_model(model, message):
+    # MOCK pour l’instant (on branchera API après)
+    return f"[{model.upper()}] Réponse à: {message}"
+
+# ----------- ROUTES -----------
 
 @app.get("/")
 def root():
-    return {"message": "Fluxorca API is running"}
+    return {"status": "OpenChawn running"}
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-@app.get("/qr/{slug}")
-def get_qr(slug: str):
-    return {
-        "slug": slug,
-        "status": "ok",
-        "links": {
-            "google": "https://g.page/r/test/review",
-            "apple": "https://maps.apple.com/?q=test",
-            "trustpilot": "https://trustpilot.com/review/test"
-        },
-        "message": f"QR config loaded for {slug}"
-    }
+@app.post("/chat")
+def chat(req: ChatRequest):
+    memory = get_memory(req.user_id)
 
-@app.post("/feedback")
-def create_feedback(payload: FeedbackInput):
-    item = {
-        "slug": payload.slug,
-        "sentiment": payload.sentiment,
-        "message": payload.message,
-        "created_at": datetime.utcnow().isoformat()
-    }
-    feedbacks.append(item)
-    return {"status": "received", "data": item}
+    model = choose_model(req.model, req.message)
 
-@app.get("/feedback/{slug}")
-def list_feedback(slug: str):
-    results = [f for f in feedbacks if f["slug"] == slug]
-    return {
-        "slug": slug,
-        "count": len(results),
-        "items": results
-    }
+    response = call_model(model, req.message)
 
-@app.post("/memory")
-def create_memory(payload: MemoryInput):
-    item = {
-        "content": payload.content,
-        "memory_type": payload.memory_type,
-        "emotion": payload.emotion,
-        "importance": payload.importance,
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    if payload.user_id not in memory_store:
-        memory_store[payload.user_id] = []
-
-    memory_store[payload.user_id].append(item)
+    add_memory(req.user_id, req.message)
 
     return {
-        "status": "stored",
-        "user_id": payload.user_id,
-        "memory": item
+        "response": response,
+        "model_used": model,
+        "memory_count": len(memory)
     }
 
 @app.get("/memory/{user_id}")
-def get_memory(user_id: str):
-    items = memory_store.get(user_id, [])
-    return {
-        "user_id": user_id,
-        "count": len(items),
-        "items": items
-    }
-
-@app.get("/memory/{user_id}/latest")
-def get_latest_memory(user_id: str):
-    items = memory_store.get(user_id, [])
-    if not items:
-        return {
-            "user_id": user_id,
-            "status": "empty",
-            "memory": None
-        }
-
-    return {
-        "user_id": user_id,
-        "status": "ok",
-        "memory": items[-1]
-    }
-
-@app.get("/memory/{user_id}/long-term")
-def get_long_term_memory(user_id: str):
-    items = memory_store.get(user_id, [])
-    results = [m for m in items if m["memory_type"] == "long_term"]
-    return {
-        "user_id": user_id,
-        "count": len(results),
-        "items": results
-    }
+def memory(user_id: str):
+    return get_memory(user_id)
